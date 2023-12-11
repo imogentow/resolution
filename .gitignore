@@ -1,0 +1,11 @@
+# Sub directories
+plots/
+
+# Style sheets
+mnras.mplstyle
+
+# Temporary test code
+temp.py
+
+# Emacs most recent change file
+*~
