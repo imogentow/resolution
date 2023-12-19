@@ -9,3 +9,6 @@ temp.py
 
 # Emacs most recent change file
 *~
+
+# Any figures in the directory
+*.png
