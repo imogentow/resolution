@@ -68,7 +68,8 @@ def get_main_halo_index(sim, snap_id, sim_type="dmo", prev_halo_id=0):
 
 def get_M200(sim, snap_id, 
              sim_type="dmo", 
-             mass_type="total"):
+             mass_type="total",
+             halo_index=0):
     if mass_type=="stellar" or mass_type=="BH":
         sim_type = "hydro" #double check
     path, catalogue_name, _ = make_paths(sim, snap_id=snap_id, sim_type=sim_type)
@@ -78,15 +79,15 @@ def get_M200(sim, snap_id,
     M200crit_star = catalogue.masses.mass_200crit_star
 
     if mass_type=="stellar":
-        return M200crit_star
+        return M200crit_star[halo_index]
     elif mass_type=="BH":
         #h5file = h5.File(path+catalogue_name+".properties", 'r')
         #h5dset = h5file['/Aperture_SubgridMasses_aperture_total_bh_100_kpc']
         #M_BH = h5dset[...]
         #h5file.close()
-        M_BH = get_BH_mass(sim, snap_id)
+        M_BH = get_BH_mass(sim, snap_id, halo_index)
         return M_BH
-    return M200crit
+    return M200crit[halo_index]
 
 
 def get_BH_mass(sim, snap_id, halo_index=0):
@@ -186,12 +187,21 @@ def calc_and_plot(sim_series, ax, sim_type="hydro", mass_type="stellar"):
         masses = np.zeros(len(snap_range))
         redshifts = np.zeros(len(snap_range))
         for j,snap_id in enumerate(snap_range):
-            halo_id = get_main_halo_index(sim, snap_id, sim_type=sim_type, prev_halo_id=halo_id)
-            #if mass_type != "BH":
-            halo_mass = get_M200(sim, snap_id, mass_type=mass_type)
+            if snap_id == 14 and (sim == "M3" or sim == "M2" or sim == "K2s" or sim == "K3s"):
+                halo_id = 1
+            elif snap_id == 15:
+                halo_id = 0
+            elif snap_id == 16:
+                if sim == "R1":
+                    halo_id = 1
+                #elif sim == "M2":
+                #    halo_id = 7344
+                else:
+                    halo_id = 0
+            else:
+                halo_id = get_main_halo_index(sim, snap_id, sim_type=sim_type, prev_halo_id=halo_id)
+            halo_mass = get_M200(sim, snap_id, mass_type=mass_type, halo_index=halo_id)
             masses[j] = halo_mass#[halo_id]
-            #else:
-            #    masses[j] = get_BH_mass(sim, snap_id, halo_index=halo_id)
             redshifts[j] = get_redshift(sim, snap_id)
         ax.semilogy(redshifts, masses*1e10,
                      label=sim,
@@ -218,7 +228,7 @@ def plot_mass_change_all(mass_type="stellar", **kwargs):
     axes[2].set_xlabel("$z$")
     axes[1].set_ylabel(ylabel)
     plt.subplots_adjust(left=0.15)
-    filename = mass_type+"_sub_mass_500c.png"
+    filename = mass_type+"_mass.png"
     plt.savefig(filename, dpi=300)
     plt.show()
 
@@ -260,7 +270,7 @@ def plot_mass_change(*sims, sim_type="dmo", mass_type="M200"):
     plt.show()
 
 #plot_mass_change("R1", "R2", mass_type="stellar")
-plot_mass_change_all(mass_type="BH")
+plot_mass_change_all(mass_type="stellar")
 #plot_centre_movement("R1")
 #get_M200("M3", 35, prev_halo_id=0)
 
