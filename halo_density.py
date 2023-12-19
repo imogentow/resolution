@@ -25,11 +25,15 @@ def get_redshift(sim, snap_id):
 
 def halo_density_profile(sim, 
                          conv="none",
-                         snap_id=36):
+                         snap_id=36,
+                         halo_index=0):
 
     path, catalogue_name, snapshot_path = make_paths(sim, snap_id=snap_id)
     catalogue = load_catalogue(path+catalogue_name+".properties")
-    R200crit = catalogue.radii.r_200crit[0] / catalogue.scale_factor
+    R200crit = catalogue.radii.r_200crit[halo_index] / catalogue.scale_factor
+
+    if (sim=="M2" or sim=="M3") and snap_id==34:
+        R200crit = 1610 * unyt.kpc
 
     #Define range for density bins
     N_bins = 30
@@ -39,9 +43,9 @@ def halo_density_profile(sim,
         radii = np.logspace(np.log10(conv), np.log10(3), N_bins+1) * R200crit
 
     # Get cluster centre
-    xc = catalogue.positions.xcmbp[0]
-    yc = catalogue.positions.ycmbp[0]
-    zc = catalogue.positions.zcmbp[0]
+    xc = catalogue.positions.xcmbp[halo_index]
+    yc = catalogue.positions.ycmbp[halo_index]
+    zc = catalogue.positions.zcmbp[halo_index]
     centre = [xc, yc, zc] / catalogue.scale_factor *unyt.Mpc
 
     # Define region for swiftsimio to read in
@@ -85,7 +89,7 @@ def halo_density_profile(sim,
     return DM_density/rho_crit, radii/R200crit
 
 
-def get_avg_profiles(sim, snap_id, conv="none"):
+def get_avg_profiles(sim, snap_id, conv="none", halo_index=0):
     if snap_id > 34: #edge case
         snap_range = np.arange(34, 36+1) #range of snap_ids to average over
     else:
@@ -96,7 +100,7 @@ def get_avg_profiles(sim, snap_id, conv="none"):
     densities = np.zeros(N_bins)
     z = np.array([])
     for snap in snap_range:
-        rho, rad = halo_density_profile(sim, conv=conv*0.9, snap_id=snap)
+        rho, rad = halo_density_profile(sim, conv=conv*0.9, snap_id=snap, halo_index=halo_index)
         densities = densities + rho
         z = np.append(z, get_redshift(sim, snap))
     return rad, densities/N_snap, z
@@ -186,8 +190,14 @@ def calc_and_plot(sim_series, ax,
 
     for i, sim in enumerate(sims):
         print(sim)
+        if snap_id == 34 and sim=="M2":
+            halo_index = 3369
+        elif snap_id == 34 and sim=="M3":
+            halo_index = 10945
+        else:
+            halo_index = 0
         conv_radius = measure_convergence_radius(sim, snap_id=snap_id)
-        rad, halo_density, z = get_avg_profiles(sim, snap_id, conv=conv_radius)
+        rad, halo_density, z = get_avg_profiles(sim, snap_id, conv=conv_radius, halo_index=halo_index)
         rad_mids = (rad[1:] + rad[:-1]) / 2
 
         ax.loglog(rad_mids, halo_density*rad_mids**2, ###need to fix y axis units
